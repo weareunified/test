@@ -1,0 +1,66 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+
+local function SetCore(title, text)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Icon = "rbxassetid://71516332224921",
+            Duration = 5
+        })
+    end)
+end
+
+local hookm = hookmetamethod
+local hookf = hookfunction
+local ncc = newcclosure
+local cc = checkcaller
+local gnm = getnamecallmethod
+
+if not (hookm and hookf and ncc) then
+    return
+end
+
+local OldNamecall; OldNamecall = hookm(game, "__namecall", ncc(function(self, ...)
+    local method = gnm()
+    local cleanMethod = string.gsub(method, "%z.*", "")
+
+    if (cleanMethod == "FireServer" or cleanMethod == "InvokeServer") then
+        local name = tostring(self)
+        local ln = string.lower(name)
+        if string.match(ln, "ban") or string.match(ln, "kick") or string.match(ln, "flag") or string.match(ln, "log") or string.match(ln, "report") then
+            if not cc() then 
+                SetCore("Lumin Hub", "Blocked Detection Remote: " .. name)
+                return nil 
+            end
+        end
+    end
+
+    if rawequal(self, LocalPlayer) and (string.gsub(cleanMethod, "^%l", string.upper) == "Kick" or string.lower(cleanMethod) == "kick") then
+        if not cc() then
+            SetCore("Lumin Hub", "Intercepted kick.")
+            return nil
+        end
+    end
+
+    return OldNamecall(self, ...)
+end))
+
+local OldKick; OldKick = hookf(LocalPlayer.Kick, ncc(function(self, ...)
+    if not cc() then
+        SetCore("Lumin Hub", "Intercepted kick.")
+        return nil
+    end
+    return OldKick(self, ...)
+end))
+
+task.spawn(function()
+    local s = os.clock()
+    while os.clock() - s < 15 do
+        if pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title="Lumin Hub", Text="Bypassed Anti Cheat Successfully", Duration=5, Icon = "rbxassetid://71516332224921"}) end) then
+            break
+        end
+        task.wait(1)
+    end
+end)
