@@ -24,26 +24,23 @@ end
 
 -- Block detection remotes and intercepted kicks via namecall
 local OldNamecall; OldNamecall = hookm(game, "__namecall", ncc(function(self, ...)
+    if cc() then return OldNamecall(self, ...) end
+    
     local method = gnm()
     local cleanMethod = string.gsub(method, "%z.*", "")
 
     if (cleanMethod == "FireServer" or cleanMethod == "InvokeServer") then
         local name = tostring(self)
         local ln = string.lower(name)
-        -- Broad filter for detection-related remote names
         if string.match(ln, "ban") or string.match(ln, "kick") or string.match(ln, "flag") or string.match(ln, "log") or string.match(ln, "report") or string.match(ln, "check") or string.match(ln, "detect") then
-            if not cc() then 
-                SetCore("Lumin Hub", "Blocked Detection Remote: " .. name)
-                return nil 
-            end
+            SetCore("Lumin Hub", "Blocked Detection Remote: " .. name)
+            return nil 
         end
     end
 
     if rawequal(self, LocalPlayer) and (string.gsub(cleanMethod, "^%l", string.upper) == "Kick" or string.lower(cleanMethod) == "kick") then
-        if not cc() then
-            SetCore("Lumin Hub", "Intercepted kick attempt.")
-            return nil
-        end
+        SetCore("Lumin Hub", "Intercepted kick attempt.")
+        return nil
     end
 
     return OldNamecall(self, ...)
@@ -71,9 +68,9 @@ end
 -- Block detection via Instance.new("RemoteEvent") which then fires immediately
 local oldInstanceNew; oldInstanceNew = hookf(Instance.new, ncc(function(class, parent)
     if not cc() and (class == "RemoteEvent" or class == "RemoteFunction") then
-        -- This is a common pattern in obfuscated ACs to create a temporary remote to report
-        SetCore("Lumin Hub", "Blocked dynamic remote creation.")
-        return Instance.new("BindableEvent") -- Return a harmless object instead
+        local ins = oldInstanceNew(class, parent)
+        SetCore("Lumin Hub", "Blocked dynamic detection remote.")
+        return oldInstanceNew("BindableEvent")
     end
     return oldInstanceNew(class, parent)
 end))
